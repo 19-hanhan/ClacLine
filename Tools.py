@@ -23,7 +23,7 @@ def GetBorder(imgPath, borderPath):
         for posCol in range(col):
             # pass
             color = img[posRow][posCol]
-            if list(color) != [255, 255, 255]:
+            if color != [255, 255, 255]:
                 cnt += 1
         cntRow.append(cnt)
         maxRow = max(maxRow, cnt)
@@ -35,7 +35,7 @@ def GetBorder(imgPath, borderPath):
         cnt = 0
         for posRow in range(row):
             color = img[posRow][posCol]
-            if list(color) != [255, 255, 255]:
+            if color != [255, 255, 255]:
                 cnt += 1
         cntCol.append(cnt)
         maxCol = max(maxCol, cnt)
@@ -66,6 +66,144 @@ def GetBorder(imgPath, borderPath):
     WriteDic(borderPath, dic)
 
 
+def CreateBorderDic(img, lsPosRow, lsPosCol):
+    """
+    判断网格是否需要造框，需要则返回True
+    :param img: opencv打开的图片对象
+    :param lsPosRow: 框线行数组
+    :param lsPosCol: 框线列数组
+    :return: 是否需要造框，需要则返回True
+    """
+    dicColor = {}
+    for col in lsPosCol:
+        for row in img.shape[0]:
+            if img[row][col].tolist() == img[0][0].tolist():
+                continue
+            if str(img[row][col]) in dicColor:
+                dicColor[str(img[row][col])] += 1
+            else:
+                dicColor[str(img[row][col])] = 1
+    lineColor = sorted(dicColor.items(), key=lambda x: x[1], reverse=True)[0][0]
+
+    # 先同各国lsPosCol求up和down
+    up = 0
+    while str(img[up][lsPosCol[0]]) != lineColor:
+        up += 1
+    lineColor = img[up + 3][lsPosCol[-1]]
+    down = img.shape[0] - 1
+    while str(img[down][lsPosCol[0]]) != lineColor:
+        down -= 1
+    # 先同各国lsPosRow求left和right
+    left = 0
+    while str(img[lsPosRow[0]][left]) != lineColor:
+        left += 1
+    right = img.shape[1] - 1
+    while str(img[lsPosRow[0]][right]) != lineColor:
+        right -= 1
+
+    return {'up': up, 'down': down, 'left': left, 'right': right}
+
+
+def GetBorderDic(imgPath):
+    """
+    获取边框点位
+    :param imgPath: 原图片地址
+    :return: 边框点位字典
+    """
+    img = cv2.imread(imgPath)
+    row, col, type = img.shape  # 统计图片的横纵像素值
+    # print("row = " + str(row) + ", col = " + str(col))
+
+    cntRow = []  # 每一行非白像素个数
+    maxRow = 0  # 行非白像素个数最大值
+    for posRow in range(row):  # 循环计算行最大非白像素个数
+        cnt = 0
+        for posCol in range(col):
+            # pass
+            color = img[posRow][posCol]
+            if color.tolist() != img[0][0].tolist():
+                cnt += 1
+        cntRow.append(cnt)
+        maxRow = max(maxRow, cnt)
+
+    # 与上面类似，对应为列
+    cntCol = []
+    maxCol = 0
+    for posCol in range(col):
+        cnt = 0
+        for posRow in range(row):
+            color = img[posRow][posCol]
+            if color.tolist() != img[0][0].tolist():
+                cnt += 1
+        cntCol.append(cnt)
+        maxCol = max(maxCol, cnt)
+
+    # print(cntRow)
+    # print(cntCol)
+    # print("maxRow = " + str(maxRow) + ", maxCol = " + str(maxCol))
+
+    lsPosRow = []
+    for pos, item in enumerate(cntRow):
+        if item > maxRow - 30:
+            lsPosRow.append(pos)
+
+    lsPosCol = []
+    for pos, item in enumerate(cntCol):
+        if item > maxCol - 30:
+            lsPosCol.append(pos)
+
+    # print(lsPosRow)
+    # print(lsPosCol)
+
+    dic = {}
+    if len(lsPosRow) > 15: # 有底色的情况
+        dic['up'] = lsPosRow[0]
+        dic['down'] = lsPosRow[len(lsPosRow) - 1]
+        dic['left'] = lsPosCol[0]
+        dic['right'] = lsPosCol[len(lsPosCol) - 1]
+    else: # 普通框线的情况
+        # 判断是否要造框
+        createBorder = CreateBorderDic(img, lsPosRow, lsPosCol)
+        # print(createBorder['up'], lsPosRow[0])
+        if abs(createBorder['up'] - lsPosRow[0]) > 10: # 造的框和简单找框的差距较远，说明框确实要造
+            return createBorder
+
+        # 通过lsPosRow计算上下
+        i = 0
+        while lsPosRow[i + 1] == lsPosRow[i] + 1:
+            i += 1
+        j = len(lsPosRow) - 1
+        while lsPosRow[j - 1] == lsPosRow[j] - 1:
+            j -= 1
+        dic['up'] = lsPosRow[i]
+        dic['down'] = lsPosRow[j]
+        # 通过lsPosCol计算左右
+        i = 0
+        while lsPosCol[i + 1] == lsPosCol[i] + 1:
+            i += 1
+        j = len(lsPosCol) - 1
+        while lsPosCol[j - 1] == lsPosCol[j] - 1:
+            j -= 1
+        dic['left'] = lsPosCol[i]
+        dic['right'] = lsPosCol[j]
+
+    return dic
+
+
+def CutBorder(imgPath, outputPath):
+    img = cv2.imread(imgPath)
+    dic = GetBorderDic(imgPath)
+    bgc = img[0][0].tolist()
+    img = img[dic['up'] + 1: dic['down'] - 1, dic['left'] + 1: dic['right'] - 1]
+    row, col, type = img.shape
+    for i in range(row):
+        for j in range(col):
+            if img[i][j].tolist() == bgc:
+                img[i][j] = img[0][0]
+
+    cv2.imwrite(outputPath, img)
+
+
 def WriteDic(filePath, dic):
     """
     写入border信息
@@ -78,6 +216,79 @@ def WriteDic(filePath, dic):
     f.write('upRight ' + str(dic['upRight'][0]) + ' ' + str(dic['upRight'][1]) + '\n');
     f.write('downLeft ' + str(dic['downLeft'][0]) + ' ' + str(dic['downLeft'][1]) + '\n');
     f.write('downRight ' + str(dic['downRight'][0]) + ' ' + str(dic['downRight'][1]) + '\n');
+
+
+def TurnBinary(inputPath, outputPath):
+    """
+    根据cv2的二值化函数进行二值化操作
+    :param inputPath: 输入图片路径
+    :param outputPath: 输出图片路径
+    :return: 无
+    """
+    img = cv2.imread(inputPath)
+    # print(outputPath)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    ret, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+    cv2.imwrite(outputPath, binary)
+    # cv2.imshow('bin', binary)
+
+
+def TurnBlackBackground(inputPath, outputPath):
+    img = cv2.imread(inputPath)
+    white = 0
+    for i in range(img.shape[0]):  # row
+        for j in range(img.shape[1]):  # col
+            if img[i][j].tolist() == [255, 255, 255]:
+                white += 1
+    black = img.shape[0] * img.shape[1] - white
+    if black > white:
+        cv2.imwrite(outputPath, img)
+    else:
+        cv2.imwrite(outputPath, 255 - img)
+
+
+def DeleteLine(imgPath, outPath):
+    binary = cv2.imread(imgPath)
+    row, col, type = binary.shape
+    # cv2.imshow("binary", binary)
+
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 5))
+    binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
+    # cv2.imshow("binary", binary)
+
+    lsRow = []
+    for i in range(row):  # row
+        cnt = 0
+        for j in range(col):  # col
+            if binary[i][j].tolist() == [255, 255, 255]:
+                cnt += 1
+        if cnt > row // 4 * 3:
+            lsRow.append(i)
+
+    lsCol = []
+    for j in range(col):  # row
+        cnt = 0
+        for i in range(row):  # col
+            if binary[i][j].tolist() == [255, 255, 255]:
+                cnt += 1
+        # print(cnt, col)
+        if cnt > col // 2:
+            lsCol.append(j)
+
+    if len(lsRow) == 0 and len(lsCol) == 0:
+        pass
+    else:
+        for pos in lsRow:
+            for item in range(col):
+                binary[pos][item] = [0, 0, 0]
+        for pos in lsCol:
+            for item in range(row):
+                binary[item][pos] = [0, 0, 0]
+        binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
+
+    # cv2.imshow("bin", binary)
+    # cv2.waitKey(0)
+    cv2.imwrite(outPath, binary)
 
 
 # 康恬
@@ -150,8 +361,9 @@ def ClearBorder(borderPath, drawWhitePath, drawLinePath):
                 # 该点像素值
                 (b, g, r) = whiteImg[row, col]
                 # 如果是右上点的颜色就变白色
-                if [b, g, r] in ls:
-                    whiteImg[row, col] = (255, 255, 255)
+                for item in range(-2, 3):
+                    if [b + item, g + item, r + item] in ls:
+                        whiteImg[row, col] = (255, 255, 255)
     cv2.imwrite(drawLinePath, whiteImg)
 
 
@@ -281,7 +493,7 @@ def fixBlack(img, y, up, down, dic):
         print('error')
     mid = (begin + end) >> 1
     changeColor(img, mid, y, dic)
-    cv2.imshow('one', img)
+    # cv2.imshow('one', img)
     return (down - mid) / (down - up)
 
 
@@ -308,10 +520,11 @@ def GetAns(drawLinePath, borderPath, dbPath, drawMarkPath, ansPath, drawMarkPath
     down = dic.get('downLeft')[0]
     length = r - l
 
-    pos = [0.0, 0.2, 0.4, 0.6, 0.8]
+    pos = [0.0, 0.25, 0.5, 0.75, 1.0]
     for i in range(len(pos)):
         pos[i] = round(l + length * pos[i])
     pos[0] += offSet
+    pos[-1] -= offSet
 
     maxi = 0
     with open(dbPath) as file:
@@ -333,3 +546,154 @@ def GetAns(drawLinePath, borderPath, dbPath, drawMarkPath, ansPath, drawMarkPath
 
     # cv2.waitKey()
     # cv2.destroyAllWindows()
+
+
+def ChangeColor(img, x, y, up, down, l, r):
+    """
+    标记点
+    :param img:
+    :param x:
+    :param y:
+    :param up:
+    :param down:
+    :param l:
+    :param r:
+    :return:
+    """
+    if x == None or y == None:
+        return
+    base = 15
+    green = [0, 255, 0]
+    yellow = [0, 255, 255]
+    for i in range(max(x - base, up), min(x + base, down)):
+        img[i][y] = green
+
+    for j in range(max(y - base, l), min(y + base, r)):
+        img[x][j] = yellow
+
+
+def targetPixel(img, y, up, down, l, r):
+    """
+    找到图像第col列的黑色像素点
+    :param img:
+    :param y:
+    :param up:
+    :param down:
+    :param l:
+    :param r:
+    :return:
+    """
+    if y < l or y > r:
+        return None
+    white = [255, 255, 255]
+    flag = False
+    base = 5
+
+    begin = 0
+    end = 0
+
+    for x in range(up + base, down - base):
+        if list(img[x][y]) == white:
+            if begin == 0:
+                begin = x
+                end = x
+                flag = True
+            else:
+                end = x
+    if flag == False:
+        for x in range(up, up + base):
+            if list(img[x][y]) == white:
+                if begin == 0:
+                    begin = x
+                    end = x
+                    flag = True
+                else:
+                    end = x
+    if flag == False:
+        for x in range(down - base, down):
+            if list(img[x][y]) == white:
+                if begin == 0:
+                    begin = x
+                    end = x
+                    flag = True
+                else:
+                    end = x
+
+    if end == 0:
+        # print('error:没找到点')
+        return None
+    mid = (begin + end) >> 1
+
+    # return (down - mid) / (down - up)
+    return mid
+
+
+def shakeTargetPixel(img, y, up, down, l, r):
+    """
+    抖动寻找像素点，如果当前列不存在像素点，左右寻找找mid
+    :param img:
+    :param y:
+    :param up:
+    :param down:
+    :param l:
+    :param r:
+    :return:
+    """
+    pixel = targetPixel(img, y, up, down, l, r)
+    if pixel != None:
+        return pixel
+    # print(1)
+    for i in range(1, 100):
+        lPixel = targetPixel(img, y - i, up, down, l, r)
+        rPixel = targetPixel(img, y + i, up, down, l, r)
+        if lPixel != None and rPixel != None:
+            return round((lPixel + rPixel) / 2)
+        elif lPixel != None:
+            return lPixel
+        elif rPixel != None:
+            return rPixel
+    return None
+
+
+def GetBinaryAns(inputImgPath, outputImgPath, maxValuePath, ansPath):
+    """
+    计算二值化图的结果
+    :param inputImgPath:
+    :param outputImgPath:
+    :param maxValuePath:
+    :param ansPath:
+    :return:
+    """
+    img = cv2.imread(inputImgPath)
+
+    height = img.shape[0] - 1
+    width = img.shape[1] - 1
+
+    pos = [0.0, 0.25, 0.5, 0.75, 1.0]
+    for i in range(len(pos)):
+        pos[i] = round(width * pos[i])
+
+    maxi = 0
+    with open(maxValuePath) as file:
+        # 遍历文件中的每一行
+        for line in file:
+            maxi = int(line)
+            break
+
+    ans = []
+    for y in pos:
+        x = shakeTargetPixel(img, y, 0, height, 0, width)
+        if x != None:
+            ChangeColor(img, x, y, 0, height, 0, width)
+            precent = (height + 1 - x) / (height + 1)
+            ans.append(round(maxi * precent, 6))
+
+    cv2.imwrite(outputImgPath, img)
+
+    f = open(ansPath, 'w')
+    print(' '.join(str(item) for item in ans), file=f)
+
+    # cv2.waitKey()
+    # cv2.destroyAllWindows()
+
+    return

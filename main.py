@@ -9,6 +9,8 @@
 
 import os
 
+import openpyxl
+
 from Configs.Config import *
 from Tools import *
 
@@ -19,8 +21,8 @@ def main():
     endCurvePos = len([lists for lists in os.listdir(curvePath) if os.path.isdir(os.path.join(curvePath, lists))])
     endPolylinePos = len(
         [lists for lists in os.listdir(polylinePath) if os.path.isdir(os.path.join(polylinePath, lists))])
-    # endCurvePos = 11
-    # endPolylinePos = -1
+    # endCurvePos = 8 + 1
+    # endPolylinePos = -1 + 1
 
     # 处理曲线图
     for pos in range(startPos, endCurvePos):
@@ -36,6 +38,13 @@ def main():
         drawTwoPath = curvePath + '/' + str(pos) + '/' + drawTwoFileName
 
         print("正在处理图片：" + imgPath)
+
+        # img = cv2.imread(imgPath);
+        # b, g, r = cv2.split(img);
+        # cv2.imshow('Blue', b);
+        # cv2.imshow('Green', g);
+        # cv2.imshow('Red', r);
+        # cv2.waitKey(0)
 
         # 白化
         TurnWhite(imgPath, drawWhitePath)
@@ -82,5 +91,62 @@ def main():
         # GetAns(drawTwoPath, borderPath, dbPath, drawMarkPath, ansPath, drawMarkPath2)
 
 
+def binary():
+    lenCurve = len([lists for lists in os.listdir(curvePath) if os.path.isdir(os.path.join(curvePath, lists))])
+    lenPolyline = len([lists for lists in os.listdir(polylinePath) if os.path.isdir(os.path.join(polylinePath, lists))])
+    # print(lenCurve)
+    for pos in range(lenCurve):
+        imgPath = curvePath + '/' + str(pos) + '/' + drawFileName  # 原图片地址
+        cutImgPath = cutBorderPath + '/Curve/' + str(pos) + '.png'
+        binaryPath = binImgPath + '/Curve/' + str(pos) + '.png'
+        blackBinaryPath = blackPath + '/Curve/' + str(pos) + '.png'
+        delpath = delNetPath + '/Curve/' + str(pos) + '.png'
+        dbpath = curvePath + '/' + str(pos) + '/' + dbFileName
+        ansPath = ansBinPath + '/Curve/' + str(pos) + '.txt'
+        markpath = markBinPath + '/Curve/' + str(pos) + '.png'
+
+        print('正在处理' + imgPath)
+        CutBorder(imgPath, cutImgPath)
+        TurnBinary(cutImgPath, binaryPath)
+        TurnBlackBackground(binaryPath, blackBinaryPath)
+        DeleteLine(blackBinaryPath, delpath)
+        GetBinaryAns(delpath, markpath, dbpath, ansPath)
+
+    for pos in range(lenPolyline):
+        imgPath = polylinePath + '/' + str(pos) + '/' + drawFileName
+        cutImgPath = cutBorderPath + '/Polyline/' + str(pos) + '.png'
+        binaryPath = binImgPath + '/Polyline/' + str(pos) + ".png"
+        blackBinaryPath = blackPath + '/Polyline/' + str(pos) + '.png'
+        delpath = delNetPath + '/Polyline/' + str(pos) + '.png'
+        dbpath = polylinePath + '/' + str(pos) + '/' + dbFileName
+        ansPath = ansBinPath + '/Polyline/' + str(pos) + '.txt'
+        markpath = markBinPath + '/Polyline/' + str(pos) + '.png'
+
+        print('正在处理' + imgPath)
+        CutBorder(imgPath, cutImgPath)
+        TurnBinary(cutImgPath, binaryPath)
+        TurnBlackBackground(binaryPath, blackBinaryPath)
+        DeleteLine(blackBinaryPath, delpath)
+        GetBinaryAns(delpath, markpath, dbpath, ansPath)
+
+
+def test():
+    # DeleteLine('img.png', 'ans.png')
+    CutBorder('draw.png', 'ans.png')
+    # TurnBlackBackground(binaryPath, blackBinaryPath)
+    # TurnBinary('ans.png', 'ans.png')
+    # GetBinaryAns('Ans/DelNet/Curve/10.png', 'ans.png', 'TrainData/Curve/10/db.txt', 'ans.txt')
+
+
+def PrintAns():
+    curve = open("Ans/Ans/Curve")
+
+    # wb = openpyxl.Workbook()
+    # sheet1 = wb.create_sheet("Sheet1")
+
+
 if __name__ == '__main__':
-    main()
+    # main()
+    binary()
+    # test()
+
