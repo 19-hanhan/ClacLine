@@ -1,6 +1,6 @@
 drawFileName = 'draw.png'
-curvePath = 'TrainData/Curve'
-polylinePath = 'TrainData/Polyline'
+curvePath = 'Data/Curve'
+polylinePath = 'Data/Polyline'
 drawWhiteFileName = 'draw_white.png'
 borderFileName = 'border.txt'
 drawLineFileName = 'draw_line.png'

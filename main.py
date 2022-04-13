@@ -139,14 +139,34 @@ def test():
 
 
 def PrintAns():
-    curve = open("Ans/Ans/Curve")
+    wb = openpyxl.Workbook()
+    sheet1 = wb.create_sheet('Sheet1')
+    for row in range(500):
+        curve = open('Ans/Ans/Curve/' + str(row) + '.txt', 'r', encoding='utf8')
+        ls = list(map(float, curve.read().split()))
+        if len(ls) < 5:
+            maxSize = int(open('Data/Curve/' + str(row) + '/db.txt', 'r', encoding='utf8').read().split()[0]) // 2
+            ls = [maxSize, maxSize, maxSize, maxSize, maxSize]
+        # print(ls)
+        for col, item in enumerate(ls):
+            sheet1.cell(row = row + 1, column = col + 1).value = item
+    sheet2 = wb.create_sheet('Sheet2')
+    for row in range(500):
+        polyline = open('Ans/Ans/Polyline/' + str(row) + '.txt', 'r', encoding='utf8')
+        ls = list(map(float, polyline.read().split()))
+        if len(ls) < 5:
+            maxSize = int(open('Data/Polyline/' + str(row) + '/db.txt', 'r', encoding='utf8').read().split()[0]) // 2
+            ls = [maxSize, maxSize, maxSize, maxSize, maxSize]
+        # print(ls)
+        for col, item in enumerate(ls):
+            sheet2.cell(row = row + 1, column = col + 1).value = item
+    wb.save('ans.xlsx')
 
-    # wb = openpyxl.Workbook()
-    # sheet1 = wb.create_sheet("Sheet1")
 
 
 if __name__ == '__main__':
     # main()
-    binary()
+    # binary()
     # test()
+    PrintAns()
 

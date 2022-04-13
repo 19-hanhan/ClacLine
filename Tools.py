@@ -76,7 +76,7 @@ def CreateBorderDic(img, lsPosRow, lsPosCol):
     """
     dicColor = {}
     for col in lsPosCol:
-        for row in img.shape[0]:
+        for row in range(img.shape[0]):
             if img[row][col].tolist() == img[0][0].tolist():
                 continue
             if str(img[row][col]) in dicColor:
@@ -84,22 +84,59 @@ def CreateBorderDic(img, lsPosRow, lsPosCol):
             else:
                 dicColor[str(img[row][col])] = 1
     lineColor = sorted(dicColor.items(), key=lambda x: x[1], reverse=True)[0][0]
+    # print(sorted(dicColor.items(), key=lambda x: x[1], reverse=True))
+    # print(lineColor)
 
     # 先同各国lsPosCol求up和down
     up = 0
-    while str(img[up][lsPosCol[0]]) != lineColor:
-        up += 1
-    lineColor = img[up + 3][lsPosCol[-1]]
+    tmpDic = {}
+    while True:
+        for col in lsPosCol:
+            if str(img[up][col]) in tmpDic.keys():
+                tmpDic[str(img[up][col])] += 1
+            else:
+                tmpDic[str(img[up][col])] = 1
+        if lineColor not in tmpDic.keys() or tmpDic[lineColor] < 5:
+            up += 1
+        else:
+            break
     down = img.shape[0] - 1
-    while str(img[down][lsPosCol[0]]) != lineColor:
-        down -= 1
+    tmpDic = {}
+    while True:
+        for col in lsPosCol:
+            if str(img[down][col]) in tmpDic.keys():
+                tmpDic[str(img[down][col])] += 1
+            else:
+                tmpDic[str(img[down][col])] = 1
+        if lineColor not in tmpDic.keys() or tmpDic[lineColor] < 5:
+            down -= 1
+        else:
+            break
     # 先同各国lsPosRow求left和right
     left = 0
-    while str(img[lsPosRow[0]][left]) != lineColor:
-        left += 1
+    tmpDic = {}
+    while True:
+        for row in lsPosRow:
+            if str(img[row][left]) in tmpDic.keys():
+                tmpDic[str(img[row][left])] += 1
+            else:
+                tmpDic[str(img[row][left])] = 1
+        if lineColor not in tmpDic.keys() or tmpDic[lineColor] < 5:
+            left += 1
+        else:
+            break
     right = img.shape[1] - 1
-    while str(img[lsPosRow[0]][right]) != lineColor:
-        right -= 1
+    tmpDic = {}
+    while True:
+        for row in lsPosRow:
+            if str(img[row][right]) in tmpDic.keys():
+                tmpDic[str(img[row][right])] += 1
+            else:
+                tmpDic[str(img[row][right])] = 1
+        if lineColor not in tmpDic.keys() or tmpDic[lineColor] < 5:
+            right -= 1
+        else:
+            break
 
     return {'up': up, 'down': down, 'left': left, 'right': right}
 
@@ -156,7 +193,8 @@ def GetBorderDic(imgPath):
     # print(lsPosCol)
 
     dic = {}
-    if len(lsPosRow) > 15: # 有底色的情况
+    # print(len(lsPosRow))
+    if len(lsPosRow) > 100: # 有底色的情况
         dic['up'] = lsPosRow[0]
         dic['down'] = lsPosRow[len(lsPosRow) - 1]
         dic['left'] = lsPosCol[0]
